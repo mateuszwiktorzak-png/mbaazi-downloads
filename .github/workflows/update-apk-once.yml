@@ -1,0 +1,42 @@
+name: Replace public MBAAZI APK once
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/update-apk-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  replace-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout public downloads repo
+        uses: actions/checkout@v4
+
+      - name: Download latest built APK artifact
+        env:
+          APK_ZIP_URL: "https://sdmntprnortheu.oaiusercontent.com/files/00000000-5f4c-81f4-ba4b-b3340e36426d/raw?se=2026-09-22T05%3A55%3A11Z&sp=r&sv=2026-02-06&sr=b&scid=905bff42-b6c3-57bd-9ea5-46f8f4daf183&skoid=76024c37-11e2-4c92-aa07-7e519fbe2d0f&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-22T05%3A38%3A16Z&ske=2026-09-23T05%3A38%3A16Z&sks=b&skv=2026-02-06&sig=0ITI1rL71wLL8vXikkfF5lNetLDh/I%2BkpeP4G87nVcE%3D"
+        run: |
+          set -euo pipefail
+          curl -L --fail --retry 3 "$APK_ZIP_URL" -o /tmp/mbaazi.zip
+          rm -rf /tmp/mbaazi-apk
+          mkdir -p /tmp/mbaazi-apk
+          unzip -o /tmp/mbaazi.zip -d /tmp/mbaazi-apk
+          APK_FILE="$(find /tmp/mbaazi-apk -type f -name '*.apk' -print -quit)"
+          test -n "$APK_FILE"
+          cp "$APK_FILE" "PLANER-KRYZYSOWY-MBAAZI.apk"
+          ls -lh "PLANER-KRYZYSOWY-MBAAZI.apk"
+
+      - name: Commit replacement and remove one-shot workflow
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "PLANER-KRYZYSOWY-MBAAZI.apk"
+          git rm ".github/workflows/update-apk-once.yml"
+          git commit -m "Update public MBAAZI APK with verification diagnostics"
+          git push
